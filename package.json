@@ -1,0 +1,35 @@
+{
+  "name": "fragments",
+  "version": "0.0.1",
+  "description": "Fragments microservice CCP555",
+  "type": "commonjs",
+  "scripts": {
+    "test:watch": "jest -c jest.config.js --runInBand --watch --",
+    "test": "jest -c jest.config.js --runInBand --",
+    "coverage": "jest -c jest.config.js --runInBand --coverage",
+    "lint": "eslint \"./src/**/*.js\" \"tests/**/*.js\"",
+    "start": "node src/index.js",
+    "dev": "LOG_LEVEL=debug nodemon ./src/index.js --watch src",
+    "debug": "LOG_LEVEL=debug nodemon --inspect=0.0.0.0:9229 ./src/index.js --watch src"
+  },
+  "dependencies": {
+    "aws-jwt-verify": "^4.0.0",
+    "dotenv": "^16.0.0",
+    "express": "^4.18.0",
+    "passport": "^0.6.0",
+    "passport-http-bearer": "^1.0.1",
+    "http-auth": "^4.1.2",
+    "http-auth-passport": "^1.0.3",
+    "pino": "^8.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^8.39.0",
+    "eslint": "^8.39.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "globals": "^13.21.0",
+    "jest": "^29.5.0",
+    "nodemon": "^2.0.22",
+    "supertest": "^6.3.3"
+  }
+}
