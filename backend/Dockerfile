@@ -13,6 +13,9 @@ RUN npm install
 # Copy rest of the app files
 COPY . .
 
+# Copy the .env file explicitly
+COPY .env .env
+
 # Expose port 8080 for our microservice
 EXPOSE 8080
 
