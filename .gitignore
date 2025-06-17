@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Node
 node_modules/
 .env
@@ -15,3 +16,8 @@ build/
 # OS generated files
 .DS_Store
 Thumbs.db
+=======
+node_modules/
+.env
+coverage/
+>>>>>>> 4b918312355b81b973b674fc2714426c8705975b
