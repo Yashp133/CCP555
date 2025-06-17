@@ -1,0 +1,17 @@
+# Node
+node_modules/
+.env
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build
+dist/
+build/
+
+# OS generated files
+.DS_Store
+Thumbs.db
