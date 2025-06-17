@@ -1,5 +1,9 @@
-// Temporary bypass for Lab 5, disable Cognito
+require('dotenv').config();
+const app = require('./app');
+const logger = require('./logger');
 
-module.exports = function () {
-  return {}; // Return empty object, skip authentication
-};
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, '0.0.0.0', () => {
+  logger.info({ port: PORT }, 'Server started and listening on 0.0.0.0');
+});
