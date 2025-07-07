@@ -1,4 +1,6 @@
 const path = require('path');
+
+// Build path to your env file
 const envFile = path.join(__dirname, 'env.jest');
 require('dotenv').config({ path: envFile });
 
@@ -7,6 +9,8 @@ console.log(`Using LOG_LEVEL=${process.env.LOG_LEVEL}. Use 'debug' in env.jest f
 module.exports = {
   verbose: true,
   testTimeout: 5000,
-  testEnvironment: 'node',
-  testMatch: ['**/tests/**/*.test.js'],
+  // Tell Jest where to find your tests
+  testMatch: [
+    "**/tests/**/*.test.js",
+  ],
 };
