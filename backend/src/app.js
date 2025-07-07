@@ -15,6 +15,7 @@ app.use((req, res) => {
   res.status(404).json(createErrorResponse(404, 'not found'));
 });
 
+/* eslint-disable-next-line no-unused-vars */
 app.use((err, req, res, next) => {
   logger.error({ err }, 'Unhandled exception');
   res.status(500).json(createErrorResponse(500, err.message));
