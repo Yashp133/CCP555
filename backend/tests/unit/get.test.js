@@ -1,6 +1,9 @@
 const request = require('supertest');
 const app = require('../../src/app');
 
+console.log('HTPASSWD_FILE from test:', process.env.HTPASSWD_FILE);
+
+
 describe('GET /v1/fragments', () => {
   test('unauthenticated requests are denied', () =>
     request(app).get('/v1/fragments').expect(401));
