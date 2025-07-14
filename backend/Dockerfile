@@ -1,35 +1,16 @@
-# Dockerfile for fragments node.js microservice
-# Defines the container image for our application
-
-# Use specific Node.js version matching your local environment
-FROM node:18.13.0
-
-# Metadata
-LABEL maintainer="Your Name <your.email@example.com>"
-LABEL description="Fragments node.js microservice"
-
-# Environment variables
-ENV PORT=8080
-ENV NPM_CONFIG_LOGLEVEL=warn
-ENV NPM_CONFIG_COLOR=false
-
-# Set working directory
+# Stage 1 - build
+FROM node:20-slim AS build
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
+RUN npm install --production
+COPY . .
 
-# Install dependencies
-RUN npm install
+# Copy htpasswd file
+COPY tests/.htpasswd ./tests/.htpasswd
 
-# Copy application source
-COPY ./src ./src
-
-# Copy test files needed for basic auth
-COPY ./tests/.htpasswd ./tests/.htpasswd
-
-# Expose the application port (documentation)
+# Stage 2 - production image
+FROM node:20-slim
+WORKDIR /app
+COPY --from=build /app .
 EXPOSE 8080
-
-# Command to run the application
 CMD ["npm", "start"]
