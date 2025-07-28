@@ -64,4 +64,22 @@ router.get('/fragments/:id', (req, res) => {
   res.send(data);
 });
 
+//
+// DELETE /v1/fragments/:id
+//
+router.delete('/fragments/:id', (req, res) => {
+  const key = `${req.user}:${req.params.id}`;
+  
+  // Check if the fragment exists
+  if (!store.has(key)) {
+    return res.sendStatus(404);
+  }
+  
+  // Delete the fragment from the store
+  store.delete(key);
+  
+  // Return success response
+  res.json({ status: 'ok' });
+});
+
 module.exports = router;
