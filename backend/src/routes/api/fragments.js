@@ -52,6 +52,23 @@ router.post('/fragments', (req, res) => {
 });
 
 //
+// GET /v1/fragments
+//
+router.get('/fragments', (req, res) => {
+  const fragments = [];
+
+  // Loop through all keys in the store to find fragments for this user
+  for (const [key] of store.entries()) {
+    if (key.startsWith(`${req.user}:`)) {
+      const id = key.split(':')[1];
+      fragments.push(id);
+    }
+  }
+
+  res.json({ status: 'ok', fragments });
+});
+
+//
 // GET /v1/fragments/:id
 //
 router.get('/fragments/:id', (req, res) => {
@@ -69,15 +86,15 @@ router.get('/fragments/:id', (req, res) => {
 //
 router.delete('/fragments/:id', (req, res) => {
   const key = `${req.user}:${req.params.id}`;
-  
+
   // Check if the fragment exists
   if (!store.has(key)) {
     return res.sendStatus(404);
   }
-  
+
   // Delete the fragment from the store
   store.delete(key);
-  
+
   // Return success response
   res.json({ status: 'ok' });
 });
