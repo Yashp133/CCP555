@@ -1,32 +1,74 @@
-const s3Client = require('./s3Client');
-const { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const logger = require('../../../logger');
+const s3Client = require('./s3Client');
+const ddbDocClient = require('./ddbDocClient');
 
-// TEMP: Use memory backend for metadata until DynamoDB is added
-const MemoryDB = require('../memory/index');
+// AWS SDK imports for S3
+const {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} = require('@aws-sdk/client-s3');
 
-// Convert S3 stream to buffer
+// AWS SDK imports for DynamoDB
+const {
+  PutCommand,
+  GetCommand,
+  QueryCommand,
+  DeleteCommand,
+} = require('@aws-sdk/lib-dynamodb');
+
+// Convert stream to Buffer for reading from S3
 const streamToBuffer = (stream) =>
   new Promise((resolve, reject) => {
     const chunks = [];
-    stream.on('data', (chunk) => chunks.push(chunk));
-    stream.on('error', reject);
-    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('data', (chunk) => chunks.push(chunk)); // collect data
+    stream.on('error', reject); // handle error
+    stream.on('end', () => resolve(Buffer.concat(chunks))); // finish
   });
 
-// Write fragment data to S3
+// Save fragment metadata to DynamoDB
+function writeFragment(fragment) {
+  const params = {
+    TableName: process.env.AWS_DYNAMODB_TABLE_NAME,
+    Item: fragment,
+  };
+  return ddbDocClient.send(new PutCommand(params));
+}
+
+// Get fragment metadata from DynamoDB
+async function readFragment(ownerId, id) {
+  const params = {
+    TableName: process.env.AWS_DYNAMODB_TABLE_NAME,
+    Key: { ownerId, id },
+  };
+  const data = await ddbDocClient.send(new GetCommand(params));
+  return data?.Item;
+}
+
+// List all fragments for a user (IDs only or expanded)
+async function listFragments(ownerId, expand = false) {
+  const params = {
+    TableName: process.env.AWS_DYNAMODB_TABLE_NAME,
+    KeyConditionExpression: 'ownerId = :ownerId',
+    ExpressionAttributeValues: { ':ownerId': ownerId },
+  };
+
+  if (!expand) {
+    params.ProjectionExpression = 'id'; // return only IDs
+  }
+
+  const data = await ddbDocClient.send(new QueryCommand(params));
+  return !expand ? data.Items.map((item) => item.id) : data.Items;
+}
+
+// Save fragment data to S3
 async function writeFragmentData(ownerId, id, data) {
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: `${ownerId}/${id}`,
     Body: data,
   };
-  try {
-    await s3Client.send(new PutObjectCommand(params));
-  } catch (err) {
-    logger.error({ err, Bucket: params.Bucket, Key: params.Key }, 'S3 upload failed');
-    throw new Error('S3 upload failed');
-  }
+  await s3Client.send(new PutObjectCommand(params));
 }
 
 // Read fragment data from S3
@@ -35,33 +77,33 @@ async function readFragmentData(ownerId, id) {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: `${ownerId}/${id}`,
   };
-  try {
-    const { Body } = await s3Client.send(new GetObjectCommand(params));
-    return streamToBuffer(Body);
-  } catch (err) {
-    logger.error({ err, Bucket: params.Bucket, Key: params.Key }, 'S3 read failed');
-    throw new Error('S3 read failed');
-  }
+  const data = await s3Client.send(new GetObjectCommand(params));
+  return streamToBuffer(data.Body);
 }
 
-// Delete fragment data from S3
-async function deleteFragmentData(ownerId, id) {
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: `${ownerId}/${id}`,
-  };
-  try {
-    await s3Client.send(new DeleteObjectCommand(params));
-  } catch (err) {
-    logger.error({ err, Bucket: params.Bucket, Key: params.Key }, 'S3 delete failed');
-    throw new Error('S3 delete failed');
-  }
+// Delete fragment metadata from DynamoDB and data from S3
+async function deleteFragment(ownerId, id) {
+  await ddbDocClient.send(
+    new DeleteCommand({
+      TableName: process.env.AWS_DYNAMODB_TABLE_NAME,
+      Key: { ownerId, id },
+    })
+  );
+
+  await s3Client.send(
+    new DeleteObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: `${ownerId}/${id}`,
+    })
+  );
 }
 
-// Export all methods (S3 + memory metadata)
+// Export functions for use in API
 module.exports = {
-  ...MemoryDB,
+  writeFragment,
+  readFragment,
+  listFragments,
   writeFragmentData,
   readFragmentData,
-  deleteFragmentData,
+  deleteFragment,
 };
