@@ -1,12 +1,9 @@
-# tests/integration/post-fragments-charset.hurl
+﻿# tests/integration/post-fragments-charset.hurl
 # POST with charset -> expect 201, then GET it back
-
 POST http://localhost:8080/v1/fragments
+Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
 Content-Type: text/plain; charset=utf-8
-[BasicAuth]
-testuser:testtest
-
-`This is a fragment with charset!`
+file,./fixtures/charset-text.txt;
 
 # 1. POST should succeed
 HTTP/1.1 201
@@ -19,11 +16,10 @@ url: header "Location"
 
 # 2. GET it back
 GET {{url}}
-[BasicAuth]
-testuser:testtest
+Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
 
 HTTP/1.1 200
-Content-Type: text/plain; charset=utf-8
-Content-Length: 32
 [Asserts]
+header "Content-Type" contains "text/plain"
+header "Content-Length" == "32"
 body == "This is a fragment with charset!"

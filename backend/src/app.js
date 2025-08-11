@@ -1,39 +1,68 @@
-// src/app.js
 const express = require('express');
 const passport = require('passport');
-const logger = require('./logger'); // ✅ Keep logger and use it
+const logger = require('./logger');
 const { strategy } = require('./auth');
 const routes = require('./routes');
 const { createErrorResponse } = require('./response');
 
 const app = express();
 
-// ─── Body parsers ────────────────────────────────────────────────
-// parse JSON bodies when Content-Type: application/json
-app.use(express.json());
+/**
+ * Body parsers
+ * - JSON: application/json -> object
+ * - Text:  text/*          -> string (utf-8)
+ * - Images/binary: image/* or application/octet-stream -> Buffer
+ * - Fallback: anything not parsed above -> Buffer (safety net)
+ */
+app.use(express.json({ type: ['application/json'], limit: '1mb' }));
+app.use(express.text({ type: ['text/*'], defaultCharset: 'utf-8', limit: '1mb' }));
+app.use(express.raw({ type: ['image/*', 'application/octet-stream'], limit: '10mb' }));
+app.use(express.raw({ type: () => true, limit: '10mb' })); // safety net
 
-// parse text bodies when Content-Type: text/plain (with or without charset)
-app.use(express.text({ type: 'text/plain', defaultCharset: 'utf-8' }));
-// ──────────────────────────────────────────────────────────────────
+// Debug tap for POST /v1/fragments (helps confirm body shape)
+app.use((req, res, next) => {
+  if (req.method === 'POST' && req.path.startsWith('/v1/fragments')) {
+    try {
+      const b = req.body;
+      const info = {
+        ct: req.headers['content-type'],
+        isBuffer: Buffer.isBuffer(b),
+        ctor: b && b.constructor ? b.constructor.name : undefined,
+        typeof: typeof b,
+        length:
+          (Buffer.isBuffer(b) && b.length) ||
+          (b && typeof b.length === 'number' && b.length) ||
+          (b && typeof b.byteLength === 'number' && b.byteLength) ||
+          (b && b.data && Array.isArray(b.data) && b.data.length) ||
+          undefined,
+      };
+      logger.info({ upload: info }, 'DEBUG upload');
+    } catch (e) {
+      logger.warn({ e }, 'DEBUG upload logging failed');
+    }
+  }
+  next();
+});
 
+// Auth
 passport.use(strategy());
 app.use(passport.initialize());
 
-// Mount all your routes (including /v1/health, /v1/fragments, etc)
+// Routes
 app.use('/', routes);
-
-// ✅ Log successful route mount
 logger.info('✅ All routes initialized');
 
-// 404 handler
+// 404
 app.use((req, res) => {
   res.status(404).json(createErrorResponse(404, 'not found'));
 });
 
+// Error handler
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   logger.error({ err }, 'Unhandled exception');
-  res.status(500).json(createErrorResponse(500, err.message));
+  const status = err.status || 500;
+  res.status(status).json(createErrorResponse(status, err.message || 'internal server error'));
 });
 
 module.exports = app;

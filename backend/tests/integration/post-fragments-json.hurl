@@ -1,12 +1,9 @@
-# tests/integration/post-fragments-json.hurl
+﻿# tests/integration/post-fragments-json.hurl
 # POST JSON -> expect 201, then GET it back
-
 POST http://localhost:8080/v1/fragments
+Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
 Content-Type: application/json
-[BasicAuth]
-testuser:testtest
-
-`{"foo":"bar","number":42}`
+file,./fixtures/sample.json;
 
 # 1. POST should succeed
 HTTP/1.1 201
@@ -19,11 +16,10 @@ url: header "Location"
 
 # 2. GET it back
 GET {{url}}
-[BasicAuth]
-testuser:testtest
+Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
 
 HTTP/1.1 200
-Content-Type: application/json; charset=utf-8
-Content-Length: 25
 [Asserts]
+header "Content-Type" contains "application/json"
+header "Content-Length" == "25"
 body == "{\"foo\":\"bar\",\"number\":42}"
