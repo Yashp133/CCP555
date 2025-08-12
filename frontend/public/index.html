@@ -2,27 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
     <title>Fragments UI</title>
   </head>
   <body>
-  <h1>Fragments UI</h1>
-  <p>API: <span id="apiBase"></span></p>
-  <p>Cognito domain: <span id="cognitoDomain"></span></p>
-
-  <button id="btnHealth">Health</button>
-  <div id="health"></div>
-
-  <p id="status">❌ Signed out</p>
-  <button id="btnLogin">Login with Cognito</button>
-  <button id="btnLogout" disabled>Logout</button>
-
-  <h2>Your Fragments</h2>
-  <button id="btnRefresh" disabled>Refresh List</button>
-  <input id="newText" placeholder="Hello from UI" />
-  <button id="btnCreate" disabled>Create Text</button>
-
-  <pre id="fragments">[]</pre>
-</body>
-
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <!-- React owns everything inside this root -->
+    <div id="root"></div>
+  </body>
 </html>

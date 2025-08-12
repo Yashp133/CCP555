@@ -7,6 +7,7 @@ import {
   login,
   logout,
   handleRedirectCallback,
+  getIdClaims,
 } from './auth/cognito';
 
 import {
@@ -23,12 +24,13 @@ import {
 
 function App() {
   const [authed, setAuthed] = useState(isAuthenticated());
+  const [user, setUser] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const [status, setStatus] = useState('');
   const [fragments, setFragments] = useState([]);
 
-  const [newText, setNewText] = useState('Hello from UI');
+  const [newText, setNewText] = useState('Hello professor!');
   const [file, setFile] = useState(null);
 
   const [selectedId, setSelectedId] = useState('');
@@ -41,12 +43,16 @@ function App() {
       handleRedirectCallback();
       window.history.replaceState({}, '', '/');
       setAuthed(isAuthenticated());
+      setUser(getIdClaims());
     }
   }, []);
 
-  // Keep authed state in sync across tabs
+  // Keep authed state + user in sync across tabs
   useEffect(() => {
-    const sync = () => setAuthed(isAuthenticated());
+    const sync = () => {
+      setAuthed(isAuthenticated());
+      setUser(getIdClaims());
+    };
     window.addEventListener('storage', sync);
     window.addEventListener('visibilitychange', sync);
     return () => {
@@ -192,7 +198,7 @@ function App() {
       alert('Configure .env (.env.local) with API + Cognito first.');
       return;
     }
-    login(); // redirects to Hosted UI
+    login();
   };
 
   const handleLogout = async () => {
@@ -200,11 +206,14 @@ function App() {
       await logout();
     } finally {
       setAuthed(false);
+      setUser(null);
       setFragments([]);
       setPreviewUrl('');
       setSelectedId('');
     }
   };
+
+  const displayName = user?.email || user?.['cognito:username'] || user?.sub || '';
 
   return (
     <div style={{ maxWidth: 820, margin: '2rem auto', fontFamily: 'system-ui' }}>
@@ -228,7 +237,7 @@ function App() {
       <section style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
         {authed ? (
           <>
-            <span>✅ Signed in</span>
+            <span>✅ Signed in{displayName ? <> as <strong>{displayName}</strong></> : null}</span>
             <button onClick={handleLogout} disabled={busy}>Logout</button>
           </>
         ) : (
