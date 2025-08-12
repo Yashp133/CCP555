@@ -1,38 +1,40 @@
 {
   "family": "fragments",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::844488432975:role/LabRole",
+  "taskRoleArn": "arn:aws:iam::844488432975:role/LabRole",
   "containerDefinitions": [
     {
       "name": "fragments",
       "image": "yashp133/fragments:latest",
+      "essential": true,
       "cpu": 512,
       "memory": 1024,
-      "essential": true,
       "portMappings": [
         {
           "containerPort": 8080,
-          "hostPort": 8080
+          "hostPort": 8080,
+          "protocol": "tcp"
         }
       ],
-      "environment": [
-        {
-          "name": "NODE_ENV",
-          "value": "production"
-        },
-        {
-          "name": "AWS_REGION",
-          "value": "us-east-1"
-        },
-        {
-          "name": "AWS_S3_BUCKET_NAME",
-          "value": "yashkumar-fragments"
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/fragments",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
         }
+      },
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "LOG_LEVEL", "value": "info" },
+        { "name": "AWS_REGION", "value": "us-east-1" },
+        { "name": "AWS_S3_BUCKET_NAME", "value": "yashkumar-fragments" },
+        { "name": "AWS_DYNAMODB_TABLE_NAME", "value": "fragments" }
       ]
     }
-  ],
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
-  "networkMode": "awsvpc",
-  "executionRoleArn": "arn:aws:iam::844488432975:role/LabRole",
-  "taskRoleArn": "arn:aws:iam::844488432975:role/LabRole"
+  ]
 }

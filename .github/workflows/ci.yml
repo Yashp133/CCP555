@@ -72,14 +72,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Install Hurl
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y hurl
-
       - name: Build & start integration stack
         run: docker compose up -d --build --wait
 
+      # Optional: extra wait to verify host port too (uses the mapped 8080)
       - name: Wait for API health
         run: |
           for i in {1..60}; do
@@ -92,14 +88,20 @@ jobs:
           echo "API did not become healthy in time" >&2
           exit 1
 
-      - name: Run Hurl integration tests
+      - name: Run Hurl integration tests (via Docker)
         env:
-          HURL_host: http://localhost:8080
-          HURL_basic_user: ${{ secrets.IT_BASIC_USER || 'user@example.com' }}
-          HURL_basic_pass: ${{ secrets.IT_BASIC_PASS || 'password' }}
+          # Container-to-container URL
+          HURL_host: http://fragments:8080
+          # Use repo secrets if present; otherwise default to testuser/testtest
+          HURL_basic_user: ${{ secrets.IT_BASIC_USER || 'testuser' }}
+          HURL_basic_pass: ${{ secrets.IT_BASIC_PASS || 'testtest' }}
         run: |
           mkdir -p reports
-          hurl --test $(git ls-files 'tests/integration/*.hurl') --report-junit reports/hurl-junit.xml
+          docker compose run --rm --no-deps \
+            -e HURL_host \
+            -e HURL_basic_user \
+            -e HURL_basic_pass \
+            hurl hurl --test tests/integration/*.hurl --report-junit reports/hurl-junit.xml
 
       - name: Upload Hurl JUnit report
         if: always()
@@ -117,6 +119,7 @@ jobs:
           docker compose logs --no-color fragments || true
           docker compose logs --no-color dynamodb-local || true
           docker compose logs --no-color localstack || true
+          docker compose logs --no-color bootstrap || true
 
       - name: Tear down
         if: always()
