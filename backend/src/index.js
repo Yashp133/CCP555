@@ -1,10 +1,10 @@
 // backend/src/index.js
 'use strict';
 
-require('dotenv').config();   // load .env into process.env
+require('dotenv').config(); // load .env
 
-// Ensure HTPASSWD_FILE is always defined (fallback to tests/.htpasswd)
-if (!process.env.HTPASSWD_FILE) {
+//  Only set HTPASSWD_FILE fallback for unit tests
+if (process.env.NODE_ENV === 'test' && !process.env.HTPASSWD_FILE) {
   process.env.HTPASSWD_FILE = 'tests/.htpasswd';
 }
 
@@ -13,5 +13,5 @@ const logger = require('./logger');
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
-  logger.info({ port: PORT }, 'Server started and listening on 0.0.0.0');
+  logger.info({ port: PORT, env: process.env.NODE_ENV }, 'Server started');
 });

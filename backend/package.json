@@ -1,6 +1,6 @@
 {
   "name": "fragments-backend",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Fragments microservice backend",
   "author": "Yash Patel <yashptl133@gmail.com>",
   "scripts": {
