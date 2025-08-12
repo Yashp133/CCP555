@@ -36,7 +36,6 @@ services:
     ports:
       - "8000:8000"
     command: ["-jar","DynamoDBLocal.jar","-inMemory"]
-    # Simple healthcheck so compose --wait doesn't hang (no curl/wget in image)
     healthcheck:
       test: ["CMD-SHELL", "echo ok"]
       interval: 2s
@@ -53,7 +52,6 @@ services:
       - DEFAULT_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
-    # Use awslocal directly with sh (no bash dependency)
     healthcheck:
       test: ["CMD-SHELL", "awslocal s3 ls >/dev/null 2>&1 || exit 1"]
       interval: 5s
@@ -72,19 +70,7 @@ services:
       AWS_SECRET_ACCESS_KEY: test
       AWS_REGION: us-east-1
     entrypoint: ["/bin/sh","-lc"]
-    command: |
-      echo "Bootstrapping Local resources..."
-      # Create S3 bucket (idempotent)
-      aws --endpoint-url http://localstack:4566 s3 mb s3://fragments || true
-
-      # Create DynamoDB table (ownerId HASH, id RANGE)  <-- CHANGED
-      aws --endpoint-url http://dynamodb-local:8000 dynamodb create-table \
-        --table-name fragments \
-        --attribute-definitions AttributeName=ownerId,AttributeType=S AttributeName=id,AttributeType=S \
-        --key-schema AttributeName=ownerId,KeyType=HASH AttributeName=id,KeyType=RANGE \
-        --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 || true
-
-      echo "Bootstrap complete."
+    command: "set -eu; echo 'Bootstrapping Local resources...'; aws --endpoint-url http://localstack:4566 s3 mb s3://fragments || true; aws --endpoint-url http://dynamodb-local:8000 dynamodb create-table --table-name fragments --attribute-definitions AttributeName=ownerId,AttributeType=S AttributeName=id,AttributeType=S --key-schema AttributeName=ownerId,KeyType=HASH AttributeName=id,KeyType=RANGE --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 || true; echo 'Bootstrap complete.'"
 
   # Optional: run Hurl inside Docker
   hurl:
