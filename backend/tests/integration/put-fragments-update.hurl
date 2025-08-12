@@ -13,4 +13,4 @@ Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
 
 HTTP/1.1 200
 [Asserts]
-body == `"Original content"`
+body == "\"Original content\""

@@ -1,4 +1,5 @@
 ﻿# Integration test for AWS S3 + DynamoDB (Lab 10)
+
 # 1️⃣ POST JSON fragment
 POST http://localhost:8080/v1/fragments
 Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
@@ -51,8 +52,8 @@ Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
 
 HTTP/1.1 200
 [Asserts]
-jsonpath "$.fragments" contains "{{fragment1_id}}"
-jsonpath "$.fragments" contains "{{fragment2_id}}"
+jsonpath "$.fragments" includes "{{fragment1_id}}"
+jsonpath "$.fragments" includes "{{fragment2_id}}"
 
 # 6️⃣ DELETE first fragment
 DELETE {{fragment1_url}}
@@ -72,5 +73,5 @@ Authorization: Basic dGVzdHVzZXI6dGVzdHRlc3Q=
 
 HTTP/1.1 200
 [Asserts]
-jsonpath "$.fragments" not contains "{{fragment1_id}}"
-jsonpath "$.fragments" contains "{{fragment2_id}}"
+jsonpath "$.fragments" not includes "{{fragment1_id}}"
+jsonpath "$.fragments" includes "{{fragment2_id}}"
