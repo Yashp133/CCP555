@@ -87,20 +87,19 @@ jobs:
           echo "API did not become healthy in time" >&2
           exit 1
 
-      - name: Run Hurl integration tests (via Docker)
+      # Run Hurl with host networking so 'http://localhost:8080' works from inside the container
+      - name: Run Hurl integration tests (host network)
         env:
-          # Container-to-container URL
-          HURL_host: http://fragments:8080
-          # Secrets override; defaults to testuser/testtest if not set
           HURL_basic_user: ${{ secrets.IT_BASIC_USER || 'testuser' }}
           HURL_basic_pass: ${{ secrets.IT_BASIC_PASS || 'testtest' }}
         run: |
           mkdir -p reports
-          docker compose run --rm --no-deps \
-            -e HURL_host \
-            -e HURL_basic_user \
-            -e HURL_basic_pass \
-            hurl --test tests/integration/*.hurl --report-junit reports/hurl-junit.xml
+          docker run --rm --network host \
+            -e HURL_basic_user -e HURL_basic_pass \
+            -v "$PWD":/workdir -w /workdir \
+            ghcr.io/orange-opensource/hurl:4.2.0 \
+            --test tests/integration/*.hurl \
+            --report-junit reports/hurl-junit.xml
 
       - name: Upload Hurl JUnit report
         if: always()
