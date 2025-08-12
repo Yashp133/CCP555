@@ -75,7 +75,6 @@ jobs:
       - name: Build & start integration stack
         run: docker compose up -d --build --wait
 
-      # Optional: extra wait to verify host port too (uses the mapped 8080)
       - name: Wait for API health
         run: |
           for i in {1..60}; do
@@ -92,7 +91,7 @@ jobs:
         env:
           # Container-to-container URL
           HURL_host: http://fragments:8080
-          # Use repo secrets if present; otherwise default to testuser/testtest
+          # Secrets override; defaults to testuser/testtest if not set
           HURL_basic_user: ${{ secrets.IT_BASIC_USER || 'testuser' }}
           HURL_basic_pass: ${{ secrets.IT_BASIC_PASS || 'testtest' }}
         run: |
@@ -101,7 +100,7 @@ jobs:
             -e HURL_host \
             -e HURL_basic_user \
             -e HURL_basic_pass \
-            hurl hurl --test tests/integration/*.hurl --report-junit reports/hurl-junit.xml
+            hurl --test tests/integration/*.hurl --report-junit reports/hurl-junit.xml
 
       - name: Upload Hurl JUnit report
         if: always()
