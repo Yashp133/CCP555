@@ -5,9 +5,6 @@ COPY package*.json ./
 RUN npm install --production
 COPY . .
 
-# Copy htpasswd file
-COPY tests/.htpasswd ./tests/.htpasswd
-
 # Stage 2 - production image
 FROM node:20-slim
 WORKDIR /app

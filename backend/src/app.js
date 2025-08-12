@@ -1,28 +1,33 @@
+// src/app.js
 const express = require('express');
 const passport = require('passport');
 const logger = require('./logger');
 const { strategy } = require('./auth');
-const routes = require('./routes');
+const routesV1 = require('./routes'); // v1 router (mounted at /v1)
 const { createErrorResponse } = require('./response');
 
 const app = express();
 
 /**
- * CORS for browser calls from the frontend
+ * CORS for browser calls from the frontend.
  * Set CORS_ORIGIN in env (e.g., http://localhost:3000). Defaults to localhost:3000.
+ * MUST run before auth and routes.
  */
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', CORS_ORIGIN);
-  res.header('Vary', 'Origin');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-  // expose headers the UI may read
-  res.header('Access-Control-Expose-Headers', 'Location, ETag');
+  res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.setHeader('Access-Control-Expose-Headers', 'Location, ETag');
 
-  if (req.method === 'OPTIONS') return res.sendStatus(204); // preflight
+  // fingerprint so we can confirm we’re hitting this app
+  res.setHeader('X-App', 'fragments-api');
+
+  if (req.method === 'OPTIONS') return res.sendStatus(204); // preflight never hits auth
   next();
 });
+logger.info({ CORS_ORIGIN }, 'CORS configured');
 
 /**
  * Body parsers
@@ -65,9 +70,9 @@ app.use((req, res, next) => {
 passport.use(strategy());
 app.use(passport.initialize());
 
-// Routes
-app.use('/', routes);
-logger.info('✅ All routes initialized');
+// Mount ALL v1 routes under /v1 (e.g., /v1/health)
+app.use('/v1', routesV1);
+logger.info('✅ All /v1 routes initialized');
 
 // 404
 app.use((req, res) => {
