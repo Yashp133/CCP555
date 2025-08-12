@@ -1,6 +1,4 @@
-// frontend/src/App.js
 import React, { useEffect, useState } from 'react';
-import api from './api';
 import {
   isConfigured,
   isAuthenticated,
@@ -37,6 +35,9 @@ function App() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [targetExt, setTargetExt] = useState('html');
 
+  // NEW: online/offline badge
+  const [online, setOnline] = useState(navigator.onLine);
+
   // Handle Cognito redirect on /auth/callback
   useEffect(() => {
     if (window.location.pathname === '/auth/callback') {
@@ -61,14 +62,27 @@ function App() {
     };
   }, []);
 
+  // NEW: react to online/offline changes
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+
   // ---------- actions ----------
   const fetchHealth = async () => {
     setBusy(true);
     try {
+      if (!navigator.onLine) throw new Error('offline');
       const data = await getHealth();
       setStatus(JSON.stringify(data));
     } catch (e) {
-      setStatus(`Health error: ${e.response?.status || ''} ${e.message}`);
+      setStatus(`Health error: ${e.response?.status || ''} ${e.message || 'offline?'}`);
     } finally {
       setBusy(false);
     }
@@ -77,10 +91,19 @@ function App() {
   const refreshList = async () => {
     setBusy(true);
     try {
+      if (!navigator.onLine) throw new Error('offline');
       const data = await listFragments();
-      setFragments(data.fragments || []);
+      const list = data.fragments || [];
+      setFragments(list);
+      // cache last-known-good for offline
+      localStorage.setItem('last_fragments', JSON.stringify(list));
     } catch (e) {
-      alert(`List error: ${e.response?.status || ''} ${e.message}`);
+      // fallback to cached list when offline or API fails
+      const cached = JSON.parse(localStorage.getItem('last_fragments') || '[]');
+      setFragments(cached);
+      if (navigator.onLine) {
+        alert(`List error (showing cached): ${e.response?.status || ''} ${e.message}`);
+      }
     } finally {
       setBusy(false);
     }
@@ -222,6 +245,12 @@ function App() {
       <section style={{ margin: '1rem 0', lineHeight: 1.6 }}>
         <div><strong>API:</strong> {process.env.REACT_APP_API_BASE_URL || '(not set)'}</div>
         <div><strong>Cognito domain:</strong> {process.env.REACT_APP_COGNITO_DOMAIN || '(not set)'}</div>
+
+        {/* NEW: online/offline indicator */}
+        <div style={{ fontSize: 12, color: online ? 'green' : 'crimson', marginTop: 4 }}>
+          {online ? 'Online' : 'Offline (showing cached data)'}
+        </div>
+
         {!isConfigured() && (
           <div style={{ color: 'crimson', marginTop: 8 }}>
             ⚠️ Configure .env.local (API + Cognito) and restart the dev server.
