@@ -15,10 +15,9 @@ jobs:
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}   # e.g., fragments
       ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}         # e.g., fragments-cluster
       ECS_SERVICE: ${{ secrets.ECS_SERVICE }}         # e.g., fragments-service
-      # Path to your task definition JSON in this repo:
       TASKDEF_PATH: backend/.ecs/fragments-definition.json
-      # Container name inside the task definition to update:
       CONTAINER_NAME: fragments
+      LOG_GROUP: /ecs/fragments
 
     steps:
       - name: Check out code
@@ -30,12 +29,15 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-          # aws-session-token is optional; omit if not using STS
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Ensure CloudWatch log group exists
+        run: |
+          aws logs create-log-group --log-group-name "$LOG_GROUP" || true
 
       - name: Build & push image to ECR
         id: build-push

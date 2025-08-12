@@ -8,6 +8,23 @@ const { createErrorResponse } = require('./response');
 const app = express();
 
 /**
+ * CORS for browser calls from the frontend
+ * Set CORS_ORIGIN in env (e.g., http://localhost:3000). Defaults to localhost:3000.
+ */
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', CORS_ORIGIN);
+  res.header('Vary', 'Origin');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  // expose headers the UI may read
+  res.header('Access-Control-Expose-Headers', 'Location, ETag');
+
+  if (req.method === 'OPTIONS') return res.sendStatus(204); // preflight
+  next();
+});
+
+/**
  * Body parsers
  * - JSON: application/json -> object
  * - Text:  text/*          -> string (utf-8)
