@@ -1,10 +1,13 @@
-// src/app.js
+// backend/src/app.js
+'use strict';
+
 const express = require('express');
 const passport = require('passport');
 const logger = require('./logger');
 const { strategy } = require('./auth');
-const routesV1 = require('./routes'); // v1 router (mounted at /v1)
-const { createErrorResponse } = require('./response');
+const routesV1 = require('./routes'); // mounted at /v1
+const { createErrorResponse, createSuccessResponse } = require('./response');
+const pkg = require('../package.json');
 
 const app = express();
 
@@ -20,10 +23,8 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
   res.setHeader('Access-Control-Expose-Headers', 'Location, ETag');
-
   // fingerprint so we can confirm we’re hitting this app
   res.setHeader('X-App', 'fragments-api');
-
   if (req.method === 'OPTIONS') return res.sendStatus(204); // preflight never hits auth
   next();
 });
@@ -69,6 +70,18 @@ app.use((req, res, next) => {
 // Auth
 passport.use(strategy());
 app.use(passport.initialize());
+
+// Root info (public) for unit tests: GET /
+app.get('/', (req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.status(200).json(
+    createSuccessResponse({
+      version: pkg.version,
+      author: pkg.author,
+      githubUrl: 'https://github.com/Yashp133/CCP555',
+    })
+  );
+});
 
 // Mount ALL v1 routes under /v1 (e.g., /v1/health)
 app.use('/v1', routesV1);

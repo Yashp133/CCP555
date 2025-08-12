@@ -1,35 +1,31 @@
+// backend/src/routes/index.js
+'use strict';
+
 const express = require('express');
 const router = express.Router();
 
-const { version, author } = require('../../package.json');
-const { createSuccessResponse } = require('../response');
-const { authenticate } = require('../auth');
+const pkg = require('../../package.json');
+const createSuccessResponse = require('../response').createSuccessResponse;
+const authenticate = require('../auth').authenticate;
 
-// --- Public routes (no auth) ---
-// Preflight for any /v1/* requests (CORS headers added in app.js)
-- router.options('/v1/*', (req, res) => res.sendStatus(204));
-+ router.options('/*', (req, res) => res.sendStatus(204)); // or remove; app.js already handles OPTIONS
-
-// ALB/browser health check
-- router.get('/v1/health', (req, res) => {
-+ router.get('/health', (req, res) => {
+// Public: /v1/health (router is mounted at /v1 in app.js)
+router.get('/health', function (req, res) {
   res.status(200).json({ status: 'ok' });
 });
 
-// Root info (public)
-router.get('/', (req, res) => {
+// Public: /v1/  (nice to have; root / is handled in app.js)
+router.get('/', function (req, res) {
   res.setHeader('Cache-Control', 'no-cache');
   res.status(200).json(
     createSuccessResponse({
-      version,
-      author,
-      githubUrl: 'https://github.com/Yashp133/CCP555',
+      version: pkg.version,
+      author: pkg.author,
+      githubUrl: 'https://github.com/Yashp133/CCP555'
     })
   );
 });
 
-// --- Protected API (Cognito/Basic based on AUTH_MODE) ---
-- router.use('/v1', authenticate(), require('./api'));
-+ router.use('/', authenticate(), require('./api'));
+// Protected API (mounted at /v1 in app.js, so these are /v1/*)
+router.use('/', authenticate(), require('./api'));
 
 module.exports = router;

@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "jest --config jest.config.js",
-    "lint": "eslint './src/**/*.js' './tests/**/*.js'",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "coverage": "jest --config jest.config.js --coverage",
     "test:integration": "hurl --test --glob \"tests/integration/**/*.hurl\""
   },
   "dependencies": {

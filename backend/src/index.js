@@ -1,12 +1,14 @@
-// src/index.js
-require('dotenv').config();   // ← load .env into process.env
+// backend/src/index.js
+'use strict';
+
+require('dotenv').config();   // load .env into process.env
 
 // Ensure HTPASSWD_FILE is always defined (fallback to tests/.htpasswd)
 if (!process.env.HTPASSWD_FILE) {
   process.env.HTPASSWD_FILE = 'tests/.htpasswd';
 }
 
-const app    = require('./app');
+const app = require('./app');
 const logger = require('./logger');
 
 const PORT = process.env.PORT || 8080;
