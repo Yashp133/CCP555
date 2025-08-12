@@ -1,4 +1,3 @@
-const logger = require('../../../logger');
 const s3Client = require('./s3Client');
 const ddbDocClient = require('./ddbDocClient');
 

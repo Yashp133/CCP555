@@ -17,6 +17,7 @@ services:
 
       # AWS / Local endpoints for local dev & CI
       AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_S3_ENDPOINT_URL: http://localstack:4566
@@ -27,7 +28,7 @@ services:
       - "8080:8080"
     volumes:
       - ./tests:/usr/src/app/tests:ro
-    # Healthcheck is provided by your Dockerfile (kept as-is so --wait works)
+    # Healthcheck assumed provided by your image (so --wait works)
 
   dynamodb-local:
     image: amazon/dynamodb-local
@@ -76,11 +77,11 @@ services:
       # Create S3 bucket (idempotent)
       aws --endpoint-url http://localstack:4566 s3 mb s3://fragments || true
 
-      # Create DynamoDB table (owner HASH, id RANGE)
+      # Create DynamoDB table (ownerId HASH, id RANGE)  <-- CHANGED
       aws --endpoint-url http://dynamodb-local:8000 dynamodb create-table \
         --table-name fragments \
-        --attribute-definitions AttributeName=owner,AttributeType=S AttributeName=id,AttributeType=S \
-        --key-schema AttributeName=owner,KeyType=HASH AttributeName=id,KeyType=RANGE \
+        --attribute-definitions AttributeName=ownerId,AttributeType=S AttributeName=id,AttributeType=S \
+        --key-schema AttributeName=ownerId,KeyType=HASH AttributeName=id,KeyType=RANGE \
         --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 || true
 
       echo "Bootstrap complete."
