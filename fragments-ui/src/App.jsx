@@ -1,6 +1,7 @@
+// src/App.jsx
 import React, { useEffect, useState } from 'react';
 import ky from 'ky';
-import { login, logout, parseHashToken, getIdToken } from './auth';
+import { login, logout, handleCallback, getIdToken } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace(/\/+$/, '');
 
@@ -9,11 +10,17 @@ export default function App() {
   const [text, setText] = useState('hello fragments!');
   const [lastResponse, setLastResponse] = useState(null);
 
+  // Handle redirect back from Cognito
   useEffect(() => {
-    if (!idToken) {
-      const found = parseHashToken();
-      if (found) setIdToken(found);
+    async function checkLogin() {
+      if (!idToken) {
+        const token = await handleCallback(); // exchanges ?code for tokens
+        if (token) {
+          setIdToken(token);
+        }
+      }
     }
+    checkLogin();
   }, [idToken]);
 
   const createFragment = async () => {
@@ -63,7 +70,7 @@ export default function App() {
           <section>
             <h2>Last response</h2>
             <pre style={{ background: '#111', color: '#0f0', padding: 12, overflow: 'auto' }}>
-{lastResponse ? JSON.stringify(lastResponse, null, 2) : '—'}
+              {lastResponse ? JSON.stringify(lastResponse, null, 2) : '—'}
             </pre>
             {lastResponse?.headers?.location && <p><strong>Location:</strong> {lastResponse.headers.location}</p>}
           </section>
