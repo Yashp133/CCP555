@@ -1,8 +1,8 @@
-const passport = require('passport');
 const BearerStrategy = require('passport-http-bearer').Strategy;
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 const logger = require('../logger');
 
+// Fail fast if required env vars are missing
 if (!(process.env.AWS_COGNITO_POOL_ID && process.env.AWS_COGNITO_CLIENT_ID)) {
   throw new Error('missing expected env vars: AWS_COGNITO_POOL_ID, AWS_COGNITO_CLIENT_ID');
 }
@@ -15,20 +15,24 @@ const jwtVerifier = CognitoJwtVerifier.create({
   tokenUse: 'id',
 });
 
-jwtVerifier.hydrate()
+jwtVerifier
+  .hydrate()
   .then(() => logger.info('Cognito JWKS cached'))
   .catch((err) => logger.error({ err }, 'Unable to cache Cognito JWKS'));
 
-module.exports.strategy = () =>
-  new BearerStrategy(async (token, done) => {
-    try {
-      const user = await jwtVerifier.verify(token);
-      logger.debug({ user }, 'verified user token');
-      done(null, user.email);
-    } catch (err) {
-      logger.error({ err, token }, 'could not verify token');
-      done(null, false);
-    }
-  });
+// Create the bearer strategy
+const bearerStrategy = new BearerStrategy(async (token, done) => {
+  try {
+    const user = await jwtVerifier.verify(token);
+    logger.debug({ user }, 'verified user token');
+    done(null, user.email);
+  } catch (err) {
+    logger.error({ err, token }, 'could not verify token');
+    done(null, false);
+  }
+});
 
-module.exports.authenticate = () => passport.authenticate('bearer', { session: false });
+module.exports.strategy = () => bearerStrategy;
+
+// Use authorize instead of passport.authenticate
+module.exports.authenticate = () => bearerStrategy.authorize('bearer');

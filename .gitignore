@@ -21,3 +21,6 @@ node_modules/
 .env
 coverage/
 >>>>>>> 4b918312355b81b973b674fc2714426c8705975b
+
+#ignore frontend subproject
+fragments-ui/

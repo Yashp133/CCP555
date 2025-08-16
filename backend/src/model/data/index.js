@@ -1,2 +1,3 @@
-// Use AWS backend if AWS_REGION is set, otherwise use in-memory
-module.exports = process.env.AWS_REGION ? require('./aws') : require('./memory');
+'use strict';
+// A1: use the in-memory data strategy
+module.exports = require('./memory');

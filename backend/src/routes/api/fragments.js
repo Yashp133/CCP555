@@ -1,23 +1,13 @@
 ﻿// src/routes/api/fragments.js
+'use strict';
+
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid'); // still used to keep parity if needed elsewhere
 const { parse } = require('content-type');
 const sharp = require('sharp');
+const Fragment = require('../../model/fragment');
 
 const router = express.Router();
-
-// In-memory store { "<ownerId>:<id>": { data: Buffer, type: string } }
-const store = new Map();
-
-const SUPPORTED = new Set([
-  'text/plain',
-  'text/markdown',
-  'text/html',
-  'application/json',
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-]);
 
 function normalizeType(headerValue) {
   return parse(headerValue).type; // strips parameters like "; charset=utf-8"
@@ -40,20 +30,28 @@ function toBufferLoose(body) {
 }
 
 // ---------- CREATE ----------
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const ctHeader = req.get('Content-Type');
   if (!ctHeader) return res.status(400).json({ status: 'error', error: 'Missing Content-Type' });
 
   let mime;
-  try { mime = normalizeType(ctHeader); }
-  catch { return res.status(400).json({ status: 'error', error: 'Invalid Content-Type' }); }
+  try {
+    mime = normalizeType(ctHeader);
+  } catch {
+    return res.status(400).json({ status: 'error', error: 'Invalid Content-Type' });
+  }
 
-  if (!SUPPORTED.has(mime)) return res.sendStatus(415);
+  // Use Fragment's supported types check (A1 requires text/plain at minimum)
+  if (!Fragment.isSupportedType(mime)) return res.sendStatus(415);
 
   let data;
   if (mime.startsWith('image/')) {
     const buf = toBufferLoose(req.body);
-    if (!buf) return res.status(400).json({ status: 'error', error: 'Image body not received as binary' });
+    if (!buf) {
+      return res
+        .status(400)
+        .json({ status: 'error', error: 'Image body not received as binary' });
+    }
     data = buf;
   } else if (mime === 'application/json') {
     data = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
@@ -61,23 +59,22 @@ router.post('/', (req, res) => {
     data = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '', 'utf8');
   }
 
-  const id = uuidv4();
-  const now = new Date().toISOString();
-  const ownerId = req.user;
+  // Create + persist via model (store original header, so charset is preserved)
+  const frag = new Fragment({ ownerId: req.user, type: ctHeader });
+  await frag.setData(data);
 
-  store.set(`${ownerId}:${id}`, { data, type: ctHeader });
+  // Location header with API_URL support
+  const base = process.env.API_URL
+    ? process.env.API_URL.replace(/\/+$/, '')
+    : `http://${req.get('host')}`;
+  const location = `${base}/v1/fragments/${frag.id}`;
 
-  const fragment = { id, created: now, updated: now, ownerId, type: ctHeader, size: data.length };
-  const location = `${req.protocol}://${req.get('host')}/v1/fragments/${id}`;
-  return res.status(201).location(location).json({ status: 'ok', fragment });
+  return res.status(201).set('Location', location).json({ status: 'ok', fragment: frag.toJSON() });
 });
 
 // ---------- LIST ----------
-router.get('/', (req, res) => {
-  const fragments = [];
-  for (const [key] of store.entries()) {
-    if (key.startsWith(`${req.user}:`)) fragments.push(key.split(':')[1]);
-  }
+router.get('/', async (req, res) => {
+  const fragments = await Fragment.listIds(req.user);
   res.json({ status: 'ok', fragments });
 });
 
@@ -96,14 +93,16 @@ const TYPE_TO_SHARP = {
 };
 
 router.get('/:id.:ext', async (req, res) => {
-  const key = `${req.user}:${req.params.id}`;
-  if (!store.has(key)) return res.sendStatus(404);
+  const frag = await Fragment.byId(req.user, req.params.id);
+  if (!frag) return res.sendStatus(404);
 
   const targetType = EXT_TO_TYPE[req.params.ext?.toLowerCase()];
-  if (!targetType) return res.status(415).json({ status: 'error', error: 'Unsupported target extension' });
+  if (!targetType) {
+    return res.status(415).json({ status: 'error', error: 'Unsupported target extension' });
+  }
 
-  const { data, type } = store.get(key);
-  const srcType = normalizeType(type);
+  const srcType = normalizeType(frag.type);
+  const data = await frag.getData();
 
   // Only allow image↔image here
   if (!srcType.startsWith('image/') || !targetType.startsWith('image/')) {
@@ -129,19 +128,18 @@ router.get('/:id.:ext', async (req, res) => {
 });
 
 // ---------- GET (raw, no conversion) ----------
-router.get('/:id', (req, res) => {
-  const key = `${req.user}:${req.params.id}`;
-  if (!store.has(key)) return res.sendStatus(404);
-  const { data, type } = store.get(key);
-  res.set('Content-Type', type);
+router.get('/:id', async (req, res) => {
+  const frag = await Fragment.byId(req.user, req.params.id);
+  if (!frag) return res.sendStatus(404);
+  const data = await frag.getData();
+  res.set('Content-Type', frag.type);
   res.send(data);
 });
 
 // ---------- DELETE ----------
-router.delete('/:id', (req, res) => {
-  const key = `${req.user}:${req.params.id}`;
-  if (!store.has(key)) return res.sendStatus(404);
-  store.delete(key);
+router.delete('/:id', async (req, res) => {
+  const ok = await Fragment.delete(req.user, req.params.id);
+  if (!ok) return res.sendStatus(404);
   res.json({ status: 'ok' });
 });
 
