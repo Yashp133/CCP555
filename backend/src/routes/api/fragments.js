@@ -2,7 +2,6 @@
 'use strict';
 
 const express = require('express');
-const { v4: uuidv4 } = require('uuid'); // still used to keep parity if needed elsewhere
 const { parse } = require('content-type');
 const sharp = require('sharp');
 const Fragment = require('../../model/fragment');
